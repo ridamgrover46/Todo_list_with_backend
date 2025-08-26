@@ -9,13 +9,19 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("https://todo-list-with-backend-3.onrender.com/api/auth/register", { username, email, password });
-      navigate("/login");
+      const res = await axios.post(
+        "https://todo-list-with-backend-3.onrender.com/api/auth/register",
+        { username, email, password }
+      );
+
+      alert(res.data.message); // ✅ show backend success message
+      navigate("/login");      // ✅ now works
 
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed");
     }
   };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -31,3 +37,4 @@ function Register() {
 }
 
 export default Register;
+
