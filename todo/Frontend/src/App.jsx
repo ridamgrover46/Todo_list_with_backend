@@ -38,42 +38,63 @@ function TodoApp() {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
 
- useEffect(() => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
+  // ✅ Fetch todos with token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
-  axios
-    .get("https://todo-list-with-backend-3.onrender.com/api/todos", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => setTodos(res.data))
-    .catch((err) => console.error(err));
-}, []);
+    axios
+      .get("https://todo-list-with-backend-3.onrender.com/api/todos", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setTodos(res.data))
+      .catch((err) => console.error(err));
+  }, []);
 
-
+  // ✅ Add Todo with token
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await axios.post("https://todo-list-with-backend-3.onrender.com/api/todos", { text });
-    setTodos([...todos, res.data]);
-    setText("");
-    toast.success("✅ Task added!");
+    const token = localStorage.getItem("token");
+
+    try {
+      const res = await axios.post(
+        "https://todo-list-with-backend-3.onrender.com/api/todos",
+        { text },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setTodos([...todos, res.data]);
+      setText("");
+      toast.success("✅ Task added!");
+    } catch (err) {
+      toast.error("❌ Failed to add task");
+    }
   };
 
+  // ✅ Toggle complete with token
   const toggleComplete = async (id, completed) => {
-    const res = await axios.put(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`, {
-      completed: !completed,
-    });
-    setTodos(todos.map((t) => (t._id === id ? res.data : t)));
-    toast.info(res.data.completed ? "🎉 Task completed!" : "↩️ Task marked as pending");
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axios.put(
+        `https://todo-list-with-backend-3.onrender.com/api/todos/${id}`,
+        { completed: !completed },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setTodos(todos.map((t) => (t._id === id ? res.data : t)));
+      toast.info(res.data.completed ? "🎉 Task completed!" : "↩️ Task marked as pending");
+    } catch (err) {
+      toast.error("❌ Failed to update task");
+    }
   };
 
+  // ✅ Delete with token
   const deleteTodo = async (id) => {
+    const token = localStorage.getItem("token");
     const deletedTodo = todos.find((t) => t._id === id);
 
-    // Optimistically remove
+    // Optimistic update
     setTodos(todos.filter((t) => t._id !== id));
 
-    // Toast with undo
+    // Undo toast
     toast(
       ({ closeToast }) => (
         <div>
@@ -93,26 +114,37 @@ function TodoApp() {
     );
 
     try {
-      await axios.delete(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`);
+      await axios.delete(
+        `https://todo-list-with-backend-3.onrender.com/api/todos/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     } catch (err) {
       setTodos((prev) => [...prev, deletedTodo]);
       toast.error("❌ Failed to delete task");
     }
   };
 
+  // Edit handling
   const startEdit = (id, text) => {
     setEditingId(id);
     setEditText(text);
   };
 
   const saveEdit = async (id) => {
-    const res = await axios.put(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`, {
-      text: editText,
-    });
-    setTodos(todos.map((t) => (t._id === id ? res.data : t)));
-    setEditingId(null);
-    setEditText("");
-    toast.success("✏️ Task updated!");
+    const token = localStorage.getItem("token");
+    try {
+      const res = await axios.put(
+        `https://todo-list-with-backend-3.onrender.com/api/todos/${id}`,
+        { text: editText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setTodos(todos.map((t) => (t._id === id ? res.data : t)));
+      setEditingId(null);
+      setEditText("");
+      toast.success("✏️ Task updated!");
+    } catch (err) {
+      toast.error("❌ Failed to update task");
+    }
   };
 
   const cancelEdit = () => {
