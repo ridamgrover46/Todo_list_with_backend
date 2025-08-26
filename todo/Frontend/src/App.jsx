@@ -11,18 +11,18 @@ function App() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/todos").then((res) => setTodos(res.data));
+    axios.get("https://todo-list-with-backend-3.onrender.com/api/todos").then((res) => setTodos(res.data));
   }, []);
 
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await axios.post("http://localhost:5000/api/todos", { text });
+    const res = await axios.post("https://todo-list-with-backend-3.onrender.com/api/todos", { text });
     setTodos([...todos, res.data]);
     setText("");
   };
 
   const toggleComplete = async (id, completed) => {
-    const res = await axios.put(`http://localhost:5000/api/todos/${id}`, {
+    const res = await axios.put(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`, {
       completed: !completed,
     });
     setTodos(todos.map((t) => (t._id === id ? res.data : t)));
@@ -30,7 +30,7 @@ function App() {
 
   const deleteTodo = async (id) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-    await axios.delete(`http://localhost:5000/api/todos/${id}`);
+    await axios.delete(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`);
     setTodos(todos.filter((t) => t._id !== id));
   };
 
@@ -40,7 +40,7 @@ function App() {
   };
 
   const saveEdit = async (id) => {
-    const res = await axios.put(`http://localhost:5000/api/todos/${id}`, {
+    const res = await axios.put(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`, {
       text: editText,
     });
     setTodos(todos.map((t) => (t._id === id ? res.data : t)));
