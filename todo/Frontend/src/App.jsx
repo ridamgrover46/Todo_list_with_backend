@@ -38,10 +38,18 @@ function TodoApp() {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  useEffect(() => {
-    axios.get("https://todo-list-with-backend-3.onrender.com/api/todos")
-      .then((res) => setTodos(res.data));
-  }, []);
+ useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  axios
+    .get("https://todo-list-with-backend-3.onrender.com/api/todos", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => setTodos(res.data))
+    .catch((err) => console.error(err));
+}, []);
+
 
   const addTodo = async () => {
     if (!text.trim()) return;
