@@ -3,16 +3,15 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import Register from "./pages/Register";
-import Login from "./pages/Login"; 
+import Login from "./pages/Login";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function Navbar() {
   return (
     <nav className="bg-indigo-600 text-white shadow-md">
       <div className="max-w-6xl mx-auto px-6 py-3 flex justify-between items-center">
-        {/* Left side - Logo/Heading */}
         <h1 className="text-2xl font-bold tracking-wide">✅ Daily Tasks</h1>
-
-        {/* Right side - Buttons */}
         <div className="flex gap-4">
           <Link
             to="/register"
@@ -49,6 +48,7 @@ function TodoApp() {
     const res = await axios.post("https://todo-list-with-backend-3.onrender.com/api/todos", { text });
     setTodos([...todos, res.data]);
     setText("");
+    toast.success("✅ Task added!");
   };
 
   const toggleComplete = async (id, completed) => {
@@ -56,12 +56,40 @@ function TodoApp() {
       completed: !completed,
     });
     setTodos(todos.map((t) => (t._id === id ? res.data : t)));
+    toast.info(res.data.completed ? "🎉 Task completed!" : "↩️ Task marked as pending");
   };
 
   const deleteTodo = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
-    await axios.delete(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`);
+    const deletedTodo = todos.find((t) => t._id === id);
+
+    // Optimistically remove
     setTodos(todos.filter((t) => t._id !== id));
+
+    // Toast with undo
+    toast(
+      ({ closeToast }) => (
+        <div>
+          <p>🗑️ Task deleted</p>
+          <button
+            onClick={() => {
+              setTodos((prev) => [...prev, deletedTodo]);
+              closeToast();
+            }}
+            className="ml-3 bg-green-500 text-white px-2 py-1 rounded text-sm"
+          >
+            Undo
+          </button>
+        </div>
+      ),
+      { autoClose: 4000 }
+    );
+
+    try {
+      await axios.delete(`https://todo-list-with-backend-3.onrender.com/api/todos/${id}`);
+    } catch (err) {
+      setTodos((prev) => [...prev, deletedTodo]);
+      toast.error("❌ Failed to delete task");
+    }
   };
 
   const startEdit = (id, text) => {
@@ -76,6 +104,7 @@ function TodoApp() {
     setTodos(todos.map((t) => (t._id === id ? res.data : t)));
     setEditingId(null);
     setEditText("");
+    toast.success("✏️ Task updated!");
   };
 
   const cancelEdit = () => {
@@ -235,6 +264,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/todos" element={<TodoApp />} />
       </Routes>
+      {/* ✅ Toast container globally */}
+      <ToastContainer position="top-right" autoClose={2000} />
     </Router>
   );
 }
