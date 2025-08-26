@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
+const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 
@@ -11,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Auth Routes
+// Routes
 app.use("/api/auth", authRoutes);
 
 // Debug check
@@ -26,36 +27,56 @@ mongoose
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error(err));
 
-// Example Todo Schema (optional)
-const TodoSchema = new mongoose.Schema({
-  text: String,
-  completed: { type: Boolean, default: false },
-});
+// ===== Todo Schema & Model (user-scoped) =====
+const TodoSchema = new mongoose.Schema(
+  {
+    text: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // link to owner
+  },
+  { timestamps: true }
+);
 const Todo = mongoose.model("Todo", TodoSchema);
 
-// Todo Routes
-app.get("/api/todos", async (req, res) => {
-  const todos = await Todo.find();
+// ===== Todo Routes (Protected) =====
+
+// Get current user's todos
+app.get("/api/todos", authMiddleware, async (req, res) => {
+  const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 });
   res.json(todos);
 });
 
-app.post("/api/todos", async (req, res) => {
-  const newTodo = new Todo({ text: req.body.text });
+// Create todo for current user
+app.post("/api/todos", authMiddleware, async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ message: "Text is required" });
+  }
+  const newTodo = new Todo({ text: text.trim(), user: req.user.id });
   await newTodo.save();
   res.json(newTodo);
 });
 
-app.put("/api/todos/:id", async (req, res) => {
-  const todo = await Todo.findByIdAndUpdate(
-    req.params.id,
-    { text: req.body.text, completed: req.body.completed },
+// Update todo (only if it belongs to current user)
+app.put("/api/todos/:id", authMiddleware, async (req, res) => {
+  const update = {};
+  if (typeof req.body.text !== "undefined") update.text = req.body.text;
+  if (typeof req.body.completed !== "undefined") update.completed = req.body.completed;
+
+  const todo = await Todo.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id },
+    update,
     { new: true }
   );
+
+  if (!todo) return res.status(404).json({ message: "Todo not found" });
   res.json(todo);
 });
 
-app.delete("/api/todos/:id", async (req, res) => {
-  await Todo.findByIdAndDelete(req.params.id);
+// Delete todo (only if it belongs to current user)
+app.delete("/api/todos/:id", authMiddleware, async (req, res) => {
+  const todo = await Todo.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+  if (!todo) return res.status(404).json({ message: "Todo not found" });
   res.json({ message: "Deleted" });
 });
 
